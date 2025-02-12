@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Shiny Hunt Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f8ff; }
+        .container { padding: 20px; }
+        .countdown, .shiny-count { font-size: 2em; font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pokémon Day 2025 Shiny Hunt Tracker</h1>
+        <div class="countdown">Countdown: <span id="timer"></span></div>
+        <div class="shiny-count">Shiny Pokémon Caught: <span id="shinyCount">0</span></div>
+        <h2>Trainer Stats</h2>
+        <table id="trainerTable" border="1" width="80%" align="center"></table>
+    </div>
+
+    <script>
+        // Countdown Timer
+        function startCountdown(duration) {
+            let endTime = Date.now() + duration * 1000;
+            function updateTimer() {
+                let remaining = endTime - Date.now();
+                if (remaining <= 0) {
+                    document.getElementById('timer').innerText = "00:00:00";
+                } else {
+                    let hours = String(Math.floor((remaining / (1000 * 60 * 60)) % 24)).padStart(2, '0');
+                    let minutes = String(Math.floor((remaining / (1000 * 60)) % 60)).padStart(2, '0');
+                    let seconds = String(Math.floor((remaining / 1000) % 60)).padStart(2, '0');
+                    document.getElementById('timer').innerText = `${hours}:${minutes}:${seconds}`;
+                    requestAnimationFrame(updateTimer);
+                }
+            }
+            updateTimer();
+        }
+        startCountdown(86400); // 24-hour countdown
+
+        // Fetch shiny count & trainer stats from Google Sheets
+        async function fetchShinyData() {
+            const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjkAIc92j0qiOdfuElTYSBolXfQZ_h5N63rUNh8lzaPWXbNIV7x-Oisv4twf1ERtCpWg7XSWz3MBTf/pub?output=csv"; // Replace with your published CSV link
+            try {
+                let response = await fetch(sheetURL);
+                let data = await response.text();
+                let rows = data.split("\n").slice(1); // Skip header row
+                let shinyCount = rows.length;
+                document.getElementById("shinyCount").innerText = shinyCount;
+
+                // Trainer Stats Table
+                let tableHTML = "<tr><th>Trainer</th><th>Shinies Caught</th></tr>";
+                let trainerCounts = {};
+                rows.forEach(row => {
+                    let cols = row.split(",");
+                    let trainer = cols[0].trim();
+                    trainerCounts[trainer] = (trainerCounts[trainer] || 0) + 1;
+                });
+
+                Object.entries(trainerCounts).forEach(([trainer, count]) => {
+                    tableHTML += `<tr><td>${trainer}</td><td>${count}</td></tr>`;
+                });
+
+                document.getElementById("trainerTable").innerHTML = tableHTML;
+            } catch (error) {
+                console.error("Error fetching shiny data:", error);
+            }
+        }
+
+        fetchShinyData();
+        setInterval(fetchShinyData, 30000); // Update every 30 seconds
+    </script>
+</body>
+</html>
